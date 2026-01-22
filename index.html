@@ -3,39 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>隊形模擬器 - 人數修正版</title>
+<title>隊形模擬器 - 專業比例版</title>
 <style>
-  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; }
-  html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; overscroll-behavior: none; font-family: -apple-system, sans-serif; background: #1a1a1a; }
-  #header { background: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10; }
+  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #2a2a2a; }
+  
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #1a1a1a; overflow-x: hidden; overflow-y: auto; }
+  
+  #header { background: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 20; }
   .title { font-weight: bold; color: var(--dark); font-size: 1.1rem; }
-  #canvas-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; background: #333; height: calc(100vh - 160px); }
-  canvas { background: #fff; box-shadow: 0 0 20px rgba(0,0,0,0.5); max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 4px; }
-  #footer { height: 100px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; padding: 0 10px; overflow-x: auto; gap: 12px; z-index: 10; }
-  .form-card { flex: 0 0 110px; height: 75px; background: #f0f2f5; border: 2px solid transparent; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; transition: 0.3s; cursor: pointer; }
+  
+  /* 專業工作區：深色背景 + 彈性比例 */
+  #canvas-wrapper { 
+    position: relative; 
+    width: 100%; 
+    height: 65vh; 
+    background: var(--bg-dark); 
+    overflow: hidden; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    box-sizing: border-box;
+  }
+  
+  /* 畫布容器：負責縮放動畫 */
+  #canvas-container { 
+    touch-action: none; 
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  canvas { 
+    background: #fdfdfd; 
+    box-shadow: 0 0 40px rgba(0,0,0,0.6); 
+    border-radius: 2px; 
+    display: block; 
+  }
+  
+  /* 縮放控制組 */
+  .zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 15; }
+  .zoom-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; font-size: 24px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--dark); }
+  .zoom-btn.reset-btn { font-size: 12px; background: var(--dark); color: white; }
+
+  .hint-bar { padding: 12px 15px; background: #fff; font-size: 12px; color: #888; border-bottom: 1px solid #ddd; text-align: center; }
+
+  /* 底部清單 */
+  #footer { height: 120px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; overflow-x: auto; gap: 12px; }
+  .form-card { flex: 0 0 115px; height: 85px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
   .form-card.active { border-color: var(--success); background: #e8f5e9; color: var(--success); font-weight: bold; }
-  .form-name { font-size: 13px; margin-top: 4px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 5px; border-radius: 4px; }
-  .btn-del-mini { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; background: var(--danger); color: white; border-radius: 50%; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-  .menu-btn { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-  .add-btn { flex: 0 0 50px; height: 50px; background: var(--success); color: white; border: none; border-radius: 50%; font-size: 28px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
-  .modal-content { background: white; padding: 20px; border-radius: 12px; width: 85%; max-width: 400px; }
-  .modal-row { margin-bottom: 15px; }
-  .modal-row label { display: block; margin-bottom: 5px; font-size: 14px; color: #666; }
-  .modal-row input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-  .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .btn-action { padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+  .btn-del-mini { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; background: var(--danger); color: white; border-radius: 50%; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  
+  .menu-btn { background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+  .add-btn { flex: 0 0 55px; height: 55px; background: var(--success); color: white; border: none; border-radius: 50%; font-size: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+  #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+  .modal-content { background: white; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
+  .btn-action { width: 100%; padding: 13px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
 </style>
 </head>
 <body>
 
 <div id="header">
   <div class="title">隊形模擬器</div>
-  <button class="menu-btn" onclick="toggleModal(true)">工具 ⚙️</button>
+  <button class="menu-btn" onclick="toggleModal(true)">工具箱 ⚙️</button>
 </div>
 
-<div id="canvas-container">
-  <canvas id="field" width="1000" height="600"></canvas>
+<div id="canvas-wrapper">
+  <div id="canvas-container" id="zoomTarget">
+    <canvas id="field" width="1000" height="600"></canvas>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="changeZoom(0.15)">＋</button>
+    <button class="zoom-btn" onclick="changeZoom(-0.15)">－</button>
+    <button class="zoom-btn reset-btn" onclick="resetZoom()">重置<br>比例</button>
+  </div>
+</div>
+
+<div class="hint-bar">
+  💡 <b>按比例顯示：</b>已自動調整為最佳視野。點擊隊形卡片可切換。
 </div>
 
 <div id="footer">
@@ -44,23 +90,17 @@
 </div>
 
 <div id="modal" onclick="if(event.target===this) toggleModal(false)">
-  <div class="modal-content">
-    <h3 style="margin-top:0">人數設定</h3>
-    <div class="modal-row">
-      <div style="display:flex; gap:10px;">
-        <div style="flex:1"><label>總人數</label><input type="number" id="totalCount" value="36"></div>
-        <div style="flex:1"><label>女生數</label><input type="number" id="femaleCount" value="18"></div>
-      </div>
-      <button class="btn-action" style="background:var(--success); color:white; width:100%; margin-top:10px;" onclick="applyNewCounts()">✅ 套用並重設所有隊形</button>
-      <p style="font-size:11px; color:red; margin-top:5px;">*注意：套用新的人數會清空目前的隊形設計！</p>
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 20px 0; color:var(--dark);">系統設定</h3>
+    <div style="display:flex; gap:15px; margin-bottom:15px;">
+      <div style="flex:1"><label style="font-size:12px;color:#666;">總人數</label><input type="number" id="totalCount" value="36" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>
+      <div style="flex:1"><label style="font-size:12px;color:#666;">女生數</label><input type="number" id="femaleCount" value="18" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>
     </div>
-    <hr>
-    <div class="modal-btns">
-      <button class="btn-action" style="background:var(--primary); color:white;" onclick="downloadImg()">📸 存成圖片</button>
-      <button class="btn-action" style="background:#fb8c00; color:white;" onclick="exportToFile()">💾 導出檔案</button>
-      <button class="btn-action" style="background:#7e57c2; color:white;" onclick="document.getElementById('fileInput').click()">📂 匯入檔案</button>
-      <button class="btn-action" style="background:#666; color:white;" onclick="toggleModal(false)">返回</button>
-    </div>
+    <button class="btn-action" style="background:var(--success); color:white;" onclick="applyNewCounts()">✅ 套用並重設隊形</button>
+    <hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
+    <button class="btn-action" style="background:var(--primary); color:white;" onclick="downloadImg()">📸 儲存為 PNG 圖片</button>
+    <button class="btn-action" style="background:#fb8c00; color:white;" onclick="exportToFile()">💾 導出設計檔 (.json)</button>
+    <button class="btn-action" style="background:#666; color:white;" onclick="toggleModal(false)">返回</button>
     <input type="file" id="fileInput" style="display:none" onchange="importFromFile(event)">
   </div>
 </div>
@@ -68,32 +108,70 @@
 <script>
 const canvas = document.getElementById("field");
 const ctx = canvas.getContext("2d");
+const container = document.getElementById("canvas-container");
+const wrapper = document.getElementById("canvas-wrapper");
 const GRID = 25, R = 15;
 
 let people = [], formations = [], currentIdx = -1, selected = [];
 let dragging = null, isMoving = false, animating = false;
+let scale = 1.0;
+
+// --- 縮放核心修正：讓重置後的比例跟截圖一樣 ---
+function resetZoom() {
+  const w = wrapper.clientWidth;
+  const h = wrapper.clientHeight;
+  
+  // 計算「左右留白」後的縮放比例 (目標寬度佔 85%)
+  const targetWidth = w * 0.85; 
+  const targetHeight = h * 0.85;
+  
+  const scaleW = targetWidth / 1000;
+  const scaleH = targetHeight / 600;
+  
+  // 取較小的比例，確保完整呈現且留邊
+  scale = Math.min(scaleW, scaleH);
+  applyScale();
+}
+
+function changeZoom(delta) {
+  scale = Math.min(Math.max(0.1, scale + delta), 2.5);
+  applyScale();
+}
+
+function applyScale() {
+  container.style.transform = `scale(${scale})`;
+}
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  return { 
+    x: (clientX - rect.left) * (1000 / rect.width), 
+    y: (clientY - rect.top) * (600 / rect.height) 
+  };
 }
 
 function snap(v){ return Math.round(v/GRID)*GRID; }
 
 function drawBackground(){
-  ctx.fillStyle="#e9efe9"; ctx.fillRect(0,0,1000,600);
-  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth = 1;
+  // 網格底色
+  ctx.fillStyle="#f8f9f8"; ctx.fillRect(0,0,1000,600);
+  
+  // 灰色網格
+  ctx.strokeStyle="#e0e0e0"; ctx.lineWidth = 1;
   for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
   for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
-  ctx.setLineDash([10, 5]); ctx.strokeStyle = "rgba(255, 0, 0, 0.5)"; ctx.lineWidth = 2;
+  
+  // 紅色中心基準虛線 (精細化)
+  ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255, 0, 0, 0.4)"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(500, 0); ctx.lineTo(500, 600); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = "#2c3e50"; ctx.fillRect(380, 530, 240, 45);
-  ctx.fillStyle = "#fff"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("裁 判 台 (正面)", 500, 558);
+  
+  // 裁判台標記 (深色質感)
+  ctx.fillStyle = "#2c3e50"; ctx.fillRect(380, 540, 240, 40);
+  ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("裁 判 台 (正面)", 500, 565);
 }
 
 function draw() {
@@ -101,7 +179,8 @@ function draw() {
   drawBackground();
   people.forEach(p=>{
     ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
-    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
+    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; 
+    ctx.fill();
     if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth = 3; ctx.stroke(); }
   });
 }
@@ -125,110 +204,70 @@ function animateTo(targetData) {
   requestAnimationFrame(step);
 }
 
-// 關鍵修正：套用新的人數並重設
-function applyNewCounts() {
-  if(confirm("這將會清除目前所有已排好的隊形，並依照新的人數重新開始。確定嗎？")) {
-    formations = [];
-    initPeople();
-    newFormation();
-    saveToLocal();
-    toggleModal(false);
-    alert("人數已更新！");
-  }
-}
-
-function initPeople() {
-  const total = parseInt(document.getElementById('totalCount').value) || 1;
-  const female = parseInt(document.getElementById('femaleCount').value) || 0;
-  people = [];
-  for(let i=0; i<total; i++) {
-    people.push({ 
-        id: i, 
-        x: 140 + (i % 8) * 100, 
-        y: 100 + Math.floor(i / 8) * 80, 
-        gender: i < female ? "female" : "male" 
-    });
-  }
-}
-
-function switchFormation(idx) {
-  if (animating || idx === currentIdx) return;
-  currentIdx = idx; animateTo(formations[idx].data); updateList(); saveToLocal();
-}
-
-function renameFormation(e, idx) {
-  e.stopPropagation();
-  const n = prompt("輸入隊形名稱：", formations[idx].name);
-  if (n) { formations[idx].name = n; updateList(); saveToLocal(); }
-}
-
-function newFormation() {
-  formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) });
-  currentIdx = formations.length - 1; updateList(); saveToLocal();
-}
-
 function handleStart(e) {
-  if (animating) return;
   const {x, y} = getPos(e);
-  let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < R + 15);
-  if(hit){ selected = [hit]; dragging = hit; isMoving = false; } else { selected = []; }
+  let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
+  if(hit){ selected = [hit]; dragging = hit; isMoving = false; if(e.cancelable) e.preventDefault(); } 
+  else { selected = []; }
   draw();
 }
 
 function handleMove(e) {
   if(!dragging) return;
-  e.preventDefault();
+  if(e.cancelable) e.preventDefault();
   const {x, y} = getPos(e);
   const dx = snap(x) - dragging.x, dy = snap(y) - dragging.y;
   if(dx !== 0 || dy !== 0){
     isMoving = true;
     selected.forEach(p => { p.x += dx; p.y += dy; });
-    formations[currentIdx].data = JSON.parse(JSON.stringify(people));
+    if(formations[currentIdx]) formations[currentIdx].data = JSON.parse(JSON.stringify(people));
     draw();
   }
 }
 
 function handleEnd() { if(isMoving) saveToLocal(); dragging = null; }
-function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
-
-function updateList(){
-  const list = document.getElementById("list"); list.innerHTML = "";
-  formations.forEach((f, idx) => {
-    const card = document.createElement("div");
-    card.className = `form-card ${idx===currentIdx?'active':''}`;
-    card.innerHTML = `<div class="form-name" onclick="renameFormation(event, ${idx})">${f.name} ✏️</div>
-                     <button class="btn-del-mini" onclick="deleteFormation(event, ${idx})">×</button>`;
-    card.onclick = (e) => { if(!e.target.classList.contains('form-name')) switchFormation(idx); };
-    list.appendChild(card);
-  });
-}
-
-function saveToLocal() { localStorage.setItem('dance_v6', JSON.stringify({ total: document.getElementById('totalCount').value, female: document.getElementById('femaleCount').value, forms: formations, currentIdx })); }
-
-function loadSession() {
-  const local = localStorage.getItem('dance_v6');
-  if (local) {
-    const d = JSON.parse(local);
-    document.getElementById('totalCount').value = d.total;
-    document.getElementById('femaleCount').value = d.female;
-    formations = d.forms; currentIdx = d.currentIdx || 0;
-    people = JSON.parse(JSON.stringify(formations[currentIdx].data));
-  } else { initPeople(); newFormation(); }
-  updateList(); draw();
-}
-
-function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); saveToLocal(); }
-function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
-function exportToFile() { const blob=new Blob([JSON.stringify({total:document.getElementById('totalCount').value, female:document.getElementById('femaleCount').value, forms:formations})], {type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='隊形存檔.json'; a.click(); }
-function importFromFile(e) { const reader=new FileReader(); reader.onload=ev=>{ const d=JSON.parse(ev.target.result); formations=d.forms; currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); saveToLocal(); updateList(); draw(); toggleModal(false); }; reader.readAsText(e.target.files[0]); }
 
 canvas.addEventListener('touchstart', handleStart, {passive: false});
-window.addEventListener('touchmove', handleMove, {passive: false});
-window.addEventListener('touchend', handleEnd);
+canvas.addEventListener('touchmove', handleMove, {passive: false});
+canvas.addEventListener('touchend', handleEnd);
 canvas.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
+
+function applyNewCounts() { if(confirm("重設人數會清空目前隊形，確定？")) { formations = []; initPeople(); newFormation(); saveToLocal(); toggleModal(false); resetZoom(); } }
+function initPeople() {
+  const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
+  people = [];
+  for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
+}
+function switchFormation(idx) { if (animating || idx === currentIdx) return; currentIdx = idx; animateTo(formations[idx].data); updateList(); saveToLocal(); }
+function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); saveToLocal(); } }
+function newFormation() { formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); currentIdx = formations.length - 1; updateList(); saveToLocal(); }
+function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); saveToLocal(); }
+function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
+function saveToLocal() { localStorage.setItem('dance_final_v10', JSON.stringify({ total: document.getElementById('totalCount').value, female: document.getElementById('femaleCount').value, forms: formations, currentIdx })); }
+function updateList(){
+  const list = document.getElementById("list"); list.innerHTML = "";
+  formations.forEach((f, idx) => {
+    const card = document.createElement("div"); card.className = `form-card ${idx===currentIdx?'active':''}`;
+    card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del-mini" onclick="deleteFormation(event, ${idx})">×</button>`;
+    card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') switchFormation(idx); };
+    list.appendChild(card);
+  });
+}
+function loadSession() {
+  const local = localStorage.getItem('dance_final_v10');
+  if (local) {
+    const d = JSON.parse(local); document.getElementById('totalCount').value = d.total; document.getElementById('femaleCount').value = d.female;
+    formations = d.forms; currentIdx = d.currentIdx || 0; people = JSON.parse(JSON.stringify(formations[currentIdx].data));
+  } else { initPeople(); newFormation(); }
+  updateList(); draw(); resetZoom();
+}
+function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
+function exportToFile() { const blob=new Blob([JSON.stringify({total:document.getElementById('totalCount').value, female:document.getElementById('femaleCount').value, forms:formations})], {type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='隊形.json'; a.click(); }
+function importFromFile(e) { const reader=new FileReader(); reader.onload=ev=>{ const d=JSON.parse(ev.target.result); formations=d.forms; currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); saveToLocal(); updateList(); draw(); toggleModal(false); resetZoom(); }; reader.readAsText(e.target.files[0]); }
 window.onload = loadSession;
+window.addEventListener('resize', resetZoom);
 </script>
 </body>
 </html>
