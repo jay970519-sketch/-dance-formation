@@ -3,63 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>隊形模擬器 - 專業比例版</title>
+<title>隊形模擬器 - 全新初始版</title>
 <style>
   :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #2a2a2a; }
   
-  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #1a1a1a; overflow-x: hidden; overflow-y: auto; }
-  
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #1a1a1a; scroll-behavior: smooth; }
+  body { min-height: 110vh; background: #f4f4f4; }
+
   #header { background: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 20; }
   .title { font-weight: bold; color: var(--dark); font-size: 1.1rem; }
   
-  /* 專業工作區：深色背景 + 彈性比例 */
+  /* 畫布工作區 */
   #canvas-wrapper { 
-    position: relative; 
-    width: 100%; 
-    height: 65vh; 
-    background: var(--bg-dark); 
-    overflow: hidden; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-    box-sizing: border-box;
+    position: relative; width: 100%; height: 65vh; background: var(--bg-dark); 
+    overflow: hidden; display: flex; justify-content: center; align-items: center;
+    transition: height 0.3s ease-in-out, opacity 0.3s;
   }
-  
-  /* 畫布容器：負責縮放動畫 */
-  #canvas-container { 
-    touch-action: none; 
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  canvas { 
-    background: #fdfdfd; 
-    box-shadow: 0 0 40px rgba(0,0,0,0.6); 
-    border-radius: 2px; 
-    display: block; 
-  }
-  
-  /* 縮放控制組 */
-  .zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 15; }
-  .zoom-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; font-size: 24px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--dark); }
-  .zoom-btn.reset-btn { font-size: 12px; background: var(--dark); color: white; }
 
-  .hint-bar { padding: 12px 15px; background: #fff; font-size: 12px; color: #888; border-bottom: 1px solid #ddd; text-align: center; }
+  .canvas-hidden #canvas-wrapper { height: 0; opacity: 0; pointer-events: none; }
+  
+  #canvas-container { touch-action: none; transition: transform 0.25s ease-out; }
+  canvas { background: #fdfdfd; box-shadow: 0 0 40px rgba(0,0,0,0.6); border-radius: 2px; }
+  
+  /* 縮放控制 */
+  .zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 15; }
+  .zoom-btn { width: 48px; height: 48px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; font-size: 24px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .scroll-hint { display: none; background: var(--dark); color: white; text-align: center; padding: 10px; font-size: 14px; cursor: pointer; }
+  .canvas-hidden .scroll-hint { display: block; }
+
+  .hint-bar { padding: 10px; background: #fff; font-size: 12px; color: #888; text-align: center; border-bottom: 1px solid #ddd; }
 
   /* 底部清單 */
-  #footer { height: 120px; background: #fff; border-top: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; overflow-x: auto; gap: 12px; }
-  .form-card { flex: 0 0 115px; height: 85px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  #footer-nav { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #ddd; z-index: 10; }
+  #footer { height: 120px; display: flex; align-items: center; padding: 0 15px; overflow-x: auto; gap: 12px; }
+  
+  .form-card { flex: 0 0 115px; height: 85px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; }
   .form-card.active { border-color: var(--success); background: #e8f5e9; color: var(--success); font-weight: bold; }
-  .btn-del-mini { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; background: var(--danger); color: white; border-radius: 50%; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .btn-del-mini { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; background: var(--danger); color: white; border-radius: 50%; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; }
   
   .menu-btn { background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-  .add-btn { flex: 0 0 55px; height: 55px; background: var(--success); color: white; border: none; border-radius: 50%; font-size: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .add-btn { flex: 0 0 55px; height: 55px; background: var(--success); color: white; border: none; border-radius: 50%; font-size: 32px; }
 
-  #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
-  .modal-content { background: white; padding: 25px; border-radius: 16px; width: 100%; max-width: 360px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
-  .btn-action { width: 100%; padding: 13px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+  /* 彈窗 */
+  #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
+  .modal-content { background: white; padding: 25px; border-radius: 16px; width: 85%; max-width: 360px; }
+  .btn-action { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -70,36 +59,40 @@
 </div>
 
 <div id="canvas-wrapper">
-  <div id="canvas-container" id="zoomTarget">
+  <div id="canvas-container">
     <canvas id="field" width="1000" height="600"></canvas>
   </div>
   <div class="zoom-controls">
     <button class="zoom-btn" onclick="changeZoom(0.15)">＋</button>
     <button class="zoom-btn" onclick="changeZoom(-0.15)">－</button>
-    <button class="zoom-btn reset-btn" onclick="resetZoom()">重置<br>比例</button>
+    <button class="zoom-btn" onclick="resetZoom()" style="font-size:12px">重置</button>
   </div>
 </div>
 
+<div class="scroll-hint" onclick="showCanvas()">🔽 點擊展開畫布</div>
+
 <div class="hint-bar">
-  💡 <b>按比例顯示：</b>已自動調整為最佳視野。點擊隊形卡片可切換。
+  💡 <b>狀態：</b>全新模擬空間。手機橫屏時上滑可隱藏畫布。
 </div>
 
-<div id="footer">
-  <button class="add-btn" onclick="newFormation()">+</button>
-  <div id="list" style="display: flex; gap: 12px; align-items: center;"></div>
+<div id="footer-nav">
+  <div id="footer">
+    <button class="add-btn" onclick="newFormation()">+</button>
+    <div id="list" style="display: flex; gap: 12px; align-items: center;"></div>
+  </div>
 </div>
 
 <div id="modal" onclick="if(event.target===this) toggleModal(false)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <h3 style="margin:0 0 20px 0; color:var(--dark);">系統設定</h3>
-    <div style="display:flex; gap:15px; margin-bottom:15px;">
-      <div style="flex:1"><label style="font-size:12px;color:#666;">總人數</label><input type="number" id="totalCount" value="36" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>
-      <div style="flex:1"><label style="font-size:12px;color:#666;">女生數</label><input type="number" id="femaleCount" value="18" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;"></div>
+    <h3 style="margin-top:0">系統設定</h3>
+    <div style="display:flex; gap:10px; margin-bottom:15px;">
+      <div style="flex:1"><label style="font-size:12px;">總人數</label><input type="number" id="totalCount" value="36" style="width:100%; padding:8px;"></div>
+      <div style="flex:1"><label style="font-size:12px;">女生數</label><input type="number" id="femaleCount" value="18" style="width:100%; padding:8px;"></div>
     </div>
-    <button class="btn-action" style="background:var(--success); color:white;" onclick="applyNewCounts()">✅ 套用並重設隊形</button>
-    <hr style="border:none; border-top:1px solid #eee; margin:15px 0;">
-    <button class="btn-action" style="background:var(--primary); color:white;" onclick="downloadImg()">📸 儲存為 PNG 圖片</button>
-    <button class="btn-action" style="background:#fb8c00; color:white;" onclick="exportToFile()">💾 導出設計檔 (.json)</button>
+    <button class="btn-action" style="background:var(--success); color:white;" onclick="applyNewCounts()">✅ 套用重設</button>
+    <hr>
+    <button class="btn-action" style="background:var(--primary); color:white;" onclick="downloadImg()">📸 儲存圖片</button>
+    <button class="btn-action" style="background:#fb8c00; color:white;" onclick="exportToFile()">💾 導出設計</button>
     <button class="btn-action" style="background:#666; color:white;" onclick="toggleModal(false)">返回</button>
     <input type="file" id="fileInput" style="display:none" onchange="importFromFile(event)">
   </div>
@@ -113,62 +106,50 @@ const wrapper = document.getElementById("canvas-wrapper");
 const GRID = 25, R = 15;
 
 let people = [], formations = [], currentIdx = -1, selected = [];
-let dragging = null, isMoving = false, animating = false;
-let scale = 1.0;
+let dragging = null, isMoving = false, animating = false, scale = 1.0;
 
-// --- 縮放核心修正：讓重置後的比例跟截圖一樣 ---
+// --- 滾動修正：電腦端不收合，手機橫屏才收合 ---
+let lastScrollTop = 0;
+window.addEventListener("scroll", function() {
+  const isMobileLandscape = (window.innerWidth < 1024) && (window.innerWidth > window.innerHeight);
+  if (!isMobileLandscape) return; 
+
+  let st = window.pageYOffset || document.documentElement.scrollTop;
+  if (st > lastScrollTop && st > 80) {
+    document.body.classList.add("canvas-hidden");
+  } else if (st < lastScrollTop && st < 50) {
+    document.body.classList.remove("canvas-hidden");
+  }
+  lastScrollTop = st <= 0 ? 0 : st;
+}, { passive: true });
+
+function showCanvas() { document.body.classList.remove("canvas-hidden"); window.scrollTo({top: 0, behavior: 'smooth'}); }
+
+// --- 繪圖功能 ---
 function resetZoom() {
-  const w = wrapper.clientWidth;
-  const h = wrapper.clientHeight;
-  
-  // 計算「左右留白」後的縮放比例 (目標寬度佔 85%)
-  const targetWidth = w * 0.85; 
-  const targetHeight = h * 0.85;
-  
-  const scaleW = targetWidth / 1000;
-  const scaleH = targetHeight / 600;
-  
-  // 取較小的比例，確保完整呈現且留邊
-  scale = Math.min(scaleW, scaleH);
+  const w = wrapper.clientWidth || window.innerWidth;
+  const h = wrapper.clientHeight || 400;
+  scale = Math.min((w * 0.85) / 1000, (h * 0.85) / 600);
   applyScale();
 }
-
-function changeZoom(delta) {
-  scale = Math.min(Math.max(0.1, scale + delta), 2.5);
-  applyScale();
-}
-
-function applyScale() {
-  container.style.transform = `scale(${scale})`;
-}
+function changeZoom(delta) { scale = Math.min(Math.max(0.1, scale + delta), 2.5); applyScale(); }
+function applyScale() { container.style.transform = `scale(${scale})`; }
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect();
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { 
-    x: (clientX - rect.left) * (1000 / rect.width), 
-    y: (clientY - rect.top) * (600 / rect.height) 
-  };
+  return { x: (clientX - rect.left) * (1000 / rect.width), y: (clientY - rect.top) * (600 / rect.height) };
 }
 
-function snap(v){ return Math.round(v/GRID)*GRID; }
-
 function drawBackground(){
-  // 網格底色
   ctx.fillStyle="#f8f9f8"; ctx.fillRect(0,0,1000,600);
-  
-  // 灰色網格
   ctx.strokeStyle="#e0e0e0"; ctx.lineWidth = 1;
   for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
   for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
-  
-  // 紅色中心基準虛線 (精細化)
   ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255, 0, 0, 0.4)"; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(500, 0); ctx.lineTo(500, 600); ctx.stroke();
   ctx.setLineDash([]);
-  
-  // 裁判台標記 (深色質感)
   ctx.fillStyle = "#2c3e50"; ctx.fillRect(380, 540, 240, 40);
   ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
   ctx.fillText("裁 判 台 (正面)", 500, 565);
@@ -179,31 +160,12 @@ function draw() {
   drawBackground();
   people.forEach(p=>{
     ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
-    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; 
-    ctx.fill();
+    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
     if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth = 3; ctx.stroke(); }
   });
 }
 
-function animateTo(targetData) {
-  if (animating) return;
-  animating = true;
-  const startData = JSON.parse(JSON.stringify(people));
-  let startTime = null;
-  function step(timestamp) {
-    if (!startTime) startTime = timestamp;
-    const progress = Math.min((timestamp - startTime) / 400, 1);
-    const ease = progress * (2 - progress);
-    people.forEach((p, i) => {
-      p.x = startData[i].x + (targetData[i].x - startData[i].x) * ease;
-      p.y = startData[i].y + (targetData[i].y - startData[i].y) * ease;
-    });
-    draw();
-    if (progress < 1) requestAnimationFrame(step); else animating = false;
-  }
-  requestAnimationFrame(step);
-}
-
+// 拖拽
 function handleStart(e) {
   const {x, y} = getPos(e);
   let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
@@ -211,12 +173,11 @@ function handleStart(e) {
   else { selected = []; }
   draw();
 }
-
 function handleMove(e) {
   if(!dragging) return;
   if(e.cancelable) e.preventDefault();
   const {x, y} = getPos(e);
-  const dx = snap(x) - dragging.x, dy = snap(y) - dragging.y;
+  const dx = Math.round(x/GRID)*GRID - dragging.x, dy = Math.round(y/GRID)*GRID - dragging.y;
   if(dx !== 0 || dy !== 0){
     isMoving = true;
     selected.forEach(p => { p.x += dx; p.y += dy; });
@@ -224,8 +185,7 @@ function handleMove(e) {
     draw();
   }
 }
-
-function handleEnd() { if(isMoving) saveToLocal(); dragging = null; }
+function handleEnd() { dragging = null; }
 
 canvas.addEventListener('touchstart', handleStart, {passive: false});
 canvas.addEventListener('touchmove', handleMove, {passive: false});
@@ -234,18 +194,50 @@ canvas.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
 
-function applyNewCounts() { if(confirm("重設人數會清空目前隊形，確定？")) { formations = []; initPeople(); newFormation(); saveToLocal(); toggleModal(false); resetZoom(); } }
+// --- 初始化邏輯：不讀取舊資料 ---
+function applyNewCounts() {
+    formations = []; 
+    initPeople(); 
+    newFormation(); 
+    toggleModal(false); 
+    resetZoom(); 
+}
+
 function initPeople() {
   const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
   people = [];
   for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
 }
-function switchFormation(idx) { if (animating || idx === currentIdx) return; currentIdx = idx; animateTo(formations[idx].data); updateList(); saveToLocal(); }
-function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); saveToLocal(); } }
-function newFormation() { formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); currentIdx = formations.length - 1; updateList(); saveToLocal(); }
-function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); saveToLocal(); }
-function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
-function saveToLocal() { localStorage.setItem('dance_final_v10', JSON.stringify({ total: document.getElementById('totalCount').value, female: document.getElementById('femaleCount').value, forms: formations, currentIdx })); }
+
+function switchFormation(idx) { 
+    currentIdx = idx; 
+    people = JSON.parse(JSON.stringify(formations[idx].data)); 
+    updateList(); 
+    draw(); 
+}
+
+function renameFormation(e, idx) { 
+    e.stopPropagation(); 
+    const n = prompt("隊形名稱：", formations[idx].name); 
+    if (n) { formations[idx].name = n; updateList(); } 
+}
+
+function newFormation() { 
+    formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); 
+    currentIdx = formations.length - 1; 
+    updateList(); 
+}
+
+function deleteFormation(e, idx) { 
+    e.stopPropagation(); 
+    if(formations.length<=1) return; 
+    formations.splice(idx,1); 
+    currentIdx=0; 
+    people=JSON.parse(JSON.stringify(formations[0].data)); 
+    updateList(); 
+    draw(); 
+}
+
 function updateList(){
   const list = document.getElementById("list"); list.innerHTML = "";
   formations.forEach((f, idx) => {
@@ -255,18 +247,19 @@ function updateList(){
     list.appendChild(card);
   });
 }
-function loadSession() {
-  const local = localStorage.getItem('dance_final_v10');
-  if (local) {
-    const d = JSON.parse(local); document.getElementById('totalCount').value = d.total; document.getElementById('femaleCount').value = d.female;
-    formations = d.forms; currentIdx = d.currentIdx || 0; people = JSON.parse(JSON.stringify(formations[currentIdx].data));
-  } else { initPeople(); newFormation(); }
-  updateList(); draw(); resetZoom();
-}
+
+function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
 function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
 function exportToFile() { const blob=new Blob([JSON.stringify({total:document.getElementById('totalCount').value, female:document.getElementById('femaleCount').value, forms:formations})], {type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='隊形.json'; a.click(); }
-function importFromFile(e) { const reader=new FileReader(); reader.onload=ev=>{ const d=JSON.parse(ev.target.result); formations=d.forms; currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); saveToLocal(); updateList(); draw(); toggleModal(false); resetZoom(); }; reader.readAsText(e.target.files[0]); }
-window.onload = loadSession;
+function importFromFile(e) { const reader=new FileReader(); reader.onload=ev=>{ const d=JSON.parse(ev.target.result); formations=d.forms; currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); toggleModal(false); resetZoom(); }; reader.readAsText(e.target.files[0]); }
+
+// 打開時直接執行初始化
+window.onload = () => {
+    initPeople();
+    newFormation();
+    draw();
+    setTimeout(resetZoom, 100);
+};
 window.addEventListener('resize', resetZoom);
 </script>
 </body>
