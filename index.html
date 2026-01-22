@@ -3,99 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>隊形模擬器 - 全新初始版</title>
+<title>隊形模擬器 - 全感應介面</title>
 <style>
-  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #2a2a2a; }
+  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #1a1a1a; }
   
-  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: #1a1a1a; scroll-behavior: smooth; }
-  body { min-height: 110vh; background: #f4f4f4; }
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: var(--bg-dark); overflow: hidden; }
 
-  #header { background: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 20; }
-  .title { font-weight: bold; color: var(--dark); font-size: 1.1rem; }
-  
-  /* 畫布工作區 */
-  #canvas-wrapper { 
-    position: relative; width: 100%; height: 65vh; background: var(--bg-dark); 
-    overflow: hidden; display: flex; justify-content: center; align-items: center;
-    transition: height 0.3s ease-in-out, opacity 0.3s;
+  /* 頂部工具列：預設隱藏 */
+  #top-panel {
+    position: fixed; top: -120px; left: 0; width: 100%; height: 100px;
+    background: white; z-index: 100; transition: top 0.3s ease;
+    display: flex; align-items: center; justify-content: space-around;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); padding: 0 10px; box-sizing: border-box;
   }
+  #top-panel.active { top: 0; }
 
-  .canvas-hidden #canvas-wrapper { height: 0; opacity: 0; pointer-events: none; }
-  
+  /* 底部隊形列：預設隱藏 */
+  #bottom-panel {
+    position: fixed; bottom: -130px; left: 0; width: 100%; height: 120px;
+    background: white; z-index: 100; transition: bottom 0.3s ease;
+    display: flex; align-items: center; padding: 0 15px; box-sizing: border-box;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.5); overflow-x: auto; gap: 12px;
+  }
+  #bottom-panel.active { bottom: 0; }
+
+  /* 感應區域：讓使用者知道哪裡可以點 */
+  .sensor {
+    position: fixed; left: 0; width: 100%; height: 40px; 
+    z-index: 90; display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.3); font-size: 12px; cursor: pointer;
+  }
+  .sensor-top { top: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); }
+  .sensor-bottom { bottom: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
+
+  /* 畫布容器 */
+  #canvas-wrapper { 
+    width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center;
+    background: var(--bg-dark); overflow: hidden;
+  }
   #canvas-container { touch-action: none; transition: transform 0.25s ease-out; }
-  canvas { background: #fdfdfd; box-shadow: 0 0 40px rgba(0,0,0,0.6); border-radius: 2px; }
-  
-  /* 縮放控制 */
-  .zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 15; }
-  .zoom-btn { width: 48px; height: 48px; background: rgba(255,255,255,0.95); border: none; border-radius: 50%; font-size: 24px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  canvas { background: #fdfdfd; box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 2px; }
 
-  .scroll-hint { display: none; background: var(--dark); color: white; text-align: center; padding: 10px; font-size: 14px; cursor: pointer; }
-  .canvas-hidden .scroll-hint { display: block; }
+  /* 側邊縮放鈕：常駐 */
+  .zoom-btns { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 80; }
+  .z-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: white; font-size: 24px; cursor: pointer; backdrop-filter: blur(5px); }
 
-  .hint-bar { padding: 10px; background: #fff; font-size: 12px; color: #888; text-align: center; border-bottom: 1px solid #ddd; }
-
-  /* 底部清單 */
-  #footer-nav { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #ddd; z-index: 10; }
-  #footer { height: 120px; display: flex; align-items: center; padding: 0 15px; overflow-x: auto; gap: 12px; }
-  
-  .form-card { flex: 0 0 115px; height: 85px; background: #f0f2f5; border: 2px solid transparent; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; cursor: pointer; }
-  .form-card.active { border-color: var(--success); background: #e8f5e9; color: var(--success); font-weight: bold; }
-  .btn-del-mini { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; background: var(--danger); color: white; border-radius: 50%; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-  
-  .menu-btn { background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold; }
-  .add-btn { flex: 0 0 55px; height: 55px; background: var(--success); color: white; border: none; border-radius: 50%; font-size: 32px; }
-
-  /* 彈窗 */
-  #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 100; }
-  .modal-content { background: white; padding: 25px; border-radius: 16px; width: 85%; max-width: 360px; }
-  .btn-action { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+  /* 元件樣式 */
+  .form-card { flex: 0 0 100px; height: 70px; background: #eee; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; cursor: pointer; }
+  .form-card.active { background: var(--success); color: white; font-weight: bold; }
+  .btn-action { padding: 10px 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: white; }
+  .btn-del { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; background: var(--danger); border-radius: 50%; border: none; color: white; }
 </style>
 </head>
 <body>
 
-<div id="header">
-  <div class="title">隊形模擬器</div>
-  <button class="menu-btn" onclick="toggleModal(true)">工具箱 ⚙️</button>
+<div class="sensor sensor-top" onclick="togglePanel('top')">▼ 工具箱與設定 ▼</div>
+
+<div id="top-panel">
+  <div style="display:flex; gap:10px;">
+    <div style="text-align:center"><label style="font-size:10px">總人數</label><br><input type="number" id="totalCount" value="36" style="width:50px"></div>
+    <div style="text-align:center"><label style="font-size:10px">女生</label><br><input type="number" id="femaleCount" value="18" style="width:50px"></div>
+  </div>
+  <button class="btn-action" style="background:var(--success)" onclick="applyNewCounts()">重設隊形</button>
+  <button class="btn-action" style="background:var(--primary)" onclick="downloadImg()">儲存圖片</button>
+  <button class="btn-action" style="background:#666" onclick="closePanels()">✕ 關閉</button>
 </div>
 
-<div id="canvas-wrapper">
+<div id="canvas-wrapper" onclick="closePanels()">
   <div id="canvas-container">
     <canvas id="field" width="1000" height="600"></canvas>
   </div>
-  <div class="zoom-controls">
-    <button class="zoom-btn" onclick="changeZoom(0.15)">＋</button>
-    <button class="zoom-btn" onclick="changeZoom(-0.15)">－</button>
-    <button class="zoom-btn" onclick="resetZoom()" style="font-size:12px">重置</button>
-  </div>
 </div>
 
-<div class="scroll-hint" onclick="showCanvas()">🔽 點擊展開畫布</div>
-
-<div class="hint-bar">
-  💡 <b>狀態：</b>全新模擬空間。手機橫屏時上滑可隱藏畫布。
+<div class="zoom-btns">
+  <button class="z-btn" onclick="changeZoom(0.15); event.stopPropagation();">＋</button>
+  <button class="z-btn" onclick="changeZoom(-0.15); event.stopPropagation();">－</button>
+  <button class="z-btn" onclick="resetZoom(); event.stopPropagation();" style="font-size:12px">重置</button>
 </div>
 
-<div id="footer-nav">
-  <div id="footer">
-    <button class="add-btn" onclick="newFormation()">+</button>
-    <div id="list" style="display: flex; gap: 12px; align-items: center;"></div>
-  </div>
-</div>
+<div class="sensor sensor-bottom" onclick="togglePanel('bottom')">▲ 切換隊形清單 ▲</div>
 
-<div id="modal" onclick="if(event.target===this) toggleModal(false)">
-  <div class="modal-content" onclick="event.stopPropagation()">
-    <h3 style="margin-top:0">系統設定</h3>
-    <div style="display:flex; gap:10px; margin-bottom:15px;">
-      <div style="flex:1"><label style="font-size:12px;">總人數</label><input type="number" id="totalCount" value="36" style="width:100%; padding:8px;"></div>
-      <div style="flex:1"><label style="font-size:12px;">女生數</label><input type="number" id="femaleCount" value="18" style="width:100%; padding:8px;"></div>
-    </div>
-    <button class="btn-action" style="background:var(--success); color:white;" onclick="applyNewCounts()">✅ 套用重設</button>
-    <hr>
-    <button class="btn-action" style="background:var(--primary); color:white;" onclick="downloadImg()">📸 儲存圖片</button>
-    <button class="btn-action" style="background:#fb8c00; color:white;" onclick="exportToFile()">💾 導出設計</button>
-    <button class="btn-action" style="background:#666; color:white;" onclick="toggleModal(false)">返回</button>
-    <input type="file" id="fileInput" style="display:none" onchange="importFromFile(event)">
-  </div>
+<div id="bottom-panel">
+  <button style="flex:0 0 50px; height:50px; border-radius:50%; border:none; background:var(--success); color:white; font-size:30px;" onclick="newFormation()">+</button>
+  <div id="list" style="display: flex; gap: 12px; align-items: center;"></div>
 </div>
 
 <script>
@@ -106,33 +96,31 @@ const wrapper = document.getElementById("canvas-wrapper");
 const GRID = 25, R = 15;
 
 let people = [], formations = [], currentIdx = -1, selected = [];
-let dragging = null, isMoving = false, animating = false, scale = 1.0;
+let dragging = null, scale = 1.0;
 
-// --- 滾動修正：電腦端不收合，手機橫屏才收合 ---
-let lastScrollTop = 0;
-window.addEventListener("scroll", function() {
-  const isMobileLandscape = (window.innerWidth < 1024) && (window.innerWidth > window.innerHeight);
-  if (!isMobileLandscape) return; 
+// --- 選單切換邏輯 ---
+function togglePanel(type) {
+    if(type === 'top') {
+        document.getElementById('top-panel').classList.toggle('active');
+        document.getElementById('bottom-panel').classList.remove('active');
+    } else {
+        document.getElementById('bottom-panel').classList.toggle('active');
+        document.getElementById('top-panel').classList.remove('active');
+    }
+}
 
-  let st = window.pageYOffset || document.documentElement.scrollTop;
-  if (st > lastScrollTop && st > 80) {
-    document.body.classList.add("canvas-hidden");
-  } else if (st < lastScrollTop && st < 50) {
-    document.body.classList.remove("canvas-hidden");
-  }
-  lastScrollTop = st <= 0 ? 0 : st;
-}, { passive: true });
+function closePanels() {
+    document.getElementById('top-panel').classList.remove('active');
+    document.getElementById('bottom-panel').classList.remove('active');
+}
 
-function showCanvas() { document.body.classList.remove("canvas-hidden"); window.scrollTo({top: 0, behavior: 'smooth'}); }
-
-// --- 繪圖功能 ---
+// --- 縮放與繪圖 ---
 function resetZoom() {
-  const w = wrapper.clientWidth || window.innerWidth;
-  const h = wrapper.clientHeight || 400;
-  scale = Math.min((w * 0.85) / 1000, (h * 0.85) / 600);
+  const w = window.innerWidth, h = window.innerHeight;
+  scale = Math.min((w * 0.85) / 1000, (h * 0.7) / 600);
   applyScale();
 }
-function changeZoom(delta) { scale = Math.min(Math.max(0.1, scale + delta), 2.5); applyScale(); }
+function changeZoom(delta) { scale = Math.min(Math.max(0.1, scale + delta), 3.0); applyScale(); }
 function applyScale() { container.style.transform = `scale(${scale})`; }
 
 function getPos(e) {
@@ -165,11 +153,10 @@ function draw() {
   });
 }
 
-// 拖拽
 function handleStart(e) {
   const {x, y} = getPos(e);
   let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
-  if(hit){ selected = [hit]; dragging = hit; isMoving = false; if(e.cancelable) e.preventDefault(); } 
+  if(hit){ selected = [hit]; dragging = hit; if(e.cancelable) e.preventDefault(); } 
   else { selected = []; }
   draw();
 }
@@ -179,7 +166,6 @@ function handleMove(e) {
   const {x, y} = getPos(e);
   const dx = Math.round(x/GRID)*GRID - dragging.x, dy = Math.round(y/GRID)*GRID - dragging.y;
   if(dx !== 0 || dy !== 0){
-    isMoving = true;
     selected.forEach(p => { p.x += dx; p.y += dy; });
     if(formations[currentIdx]) formations[currentIdx].data = JSON.parse(JSON.stringify(people));
     draw();
@@ -194,72 +180,29 @@ canvas.addEventListener('mousedown', handleStart);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', handleEnd);
 
-// --- 初始化邏輯：不讀取舊資料 ---
-function applyNewCounts() {
-    formations = []; 
-    initPeople(); 
-    newFormation(); 
-    toggleModal(false); 
-    resetZoom(); 
-}
-
+function applyNewCounts() { if(confirm("確定重設？")) { formations = []; initPeople(); newFormation(); resetZoom(); } }
 function initPeople() {
   const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
   people = [];
   for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
 }
-
-function switchFormation(idx) { 
-    currentIdx = idx; 
-    people = JSON.parse(JSON.stringify(formations[idx].data)); 
-    updateList(); 
-    draw(); 
-}
-
-function renameFormation(e, idx) { 
-    e.stopPropagation(); 
-    const n = prompt("隊形名稱：", formations[idx].name); 
-    if (n) { formations[idx].name = n; updateList(); } 
-}
-
-function newFormation() { 
-    formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); 
-    currentIdx = formations.length - 1; 
-    updateList(); 
-}
-
-function deleteFormation(e, idx) { 
-    e.stopPropagation(); 
-    if(formations.length<=1) return; 
-    formations.splice(idx,1); 
-    currentIdx=0; 
-    people=JSON.parse(JSON.stringify(formations[0].data)); 
-    updateList(); 
-    draw(); 
-}
+function switchFormation(idx) { currentIdx = idx; people = JSON.parse(JSON.stringify(formations[idx].data)); updateList(); draw(); }
+function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); } }
+function newFormation() { formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); currentIdx = formations.length - 1; updateList(); }
+function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); }
 
 function updateList(){
   const list = document.getElementById("list"); list.innerHTML = "";
   formations.forEach((f, idx) => {
     const card = document.createElement("div"); card.className = `form-card ${idx===currentIdx?'active':''}`;
-    card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del-mini" onclick="deleteFormation(event, ${idx})">×</button>`;
+    card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del" onclick="deleteFormation(event, ${idx})">×</button>`;
     card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') switchFormation(idx); };
     list.appendChild(card);
   });
 }
-
-function toggleModal(show) { document.getElementById('modal').style.display = show ? 'flex' : 'none'; }
 function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
-function exportToFile() { const blob=new Blob([JSON.stringify({total:document.getElementById('totalCount').value, female:document.getElementById('femaleCount').value, forms:formations})], {type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='隊形.json'; a.click(); }
-function importFromFile(e) { const reader=new FileReader(); reader.onload=ev=>{ const d=JSON.parse(ev.target.result); formations=d.forms; currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); toggleModal(false); resetZoom(); }; reader.readAsText(e.target.files[0]); }
 
-// 打開時直接執行初始化
-window.onload = () => {
-    initPeople();
-    newFormation();
-    draw();
-    setTimeout(resetZoom, 100);
-};
+window.onload = () => { initPeople(); newFormation(); draw(); setTimeout(resetZoom, 100); };
 window.addEventListener('resize', resetZoom);
 </script>
 </body>
