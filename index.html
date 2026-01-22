@@ -2,207 +2,275 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>隊形模擬器 - 全感應介面</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>隊形模擬器 - 專業手感版</title>
 <style>
-  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #1a1a1a; }
+  :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #121212; }
   
-  html, body { width: 100%; height: 100%; margin: 0; padding: 0; font-family: -apple-system, sans-serif; background: var(--bg-dark); overflow: hidden; }
+  html, body { 
+    width: 100%; height: 100%; margin: 0; padding: 0; 
+    font-family: -apple-system, sans-serif; background: var(--bg-dark); 
+    overflow: hidden; touch-action: none;
+  }
 
-  /* 頂部工具列：預設隱藏 */
+  /* 頂部工具列 */
   #top-panel {
     position: fixed; top: -120px; left: 0; width: 100%; height: 100px;
-    background: white; z-index: 100; transition: top 0.3s ease;
+    background: white; z-index: 100; transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex; align-items: center; justify-content: space-around;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5); padding: 0 10px; box-sizing: border-box;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); padding: 0 20px; box-sizing: border-box;
   }
   #top-panel.active { top: 0; }
 
-  /* 底部隊形列：預設隱藏 */
+  /* 底部隊形列 */
   #bottom-panel {
-    position: fixed; bottom: -130px; left: 0; width: 100%; height: 120px;
-    background: white; z-index: 100; transition: bottom 0.3s ease;
-    display: flex; align-items: center; padding: 0 15px; box-sizing: border-box;
+    position: fixed; bottom: -140px; left: 0; width: 100%; height: 130px;
+    background: white; z-index: 100; transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; align-items: center; padding: 0 20px; box-sizing: border-box;
     box-shadow: 0 -4px 15px rgba(0,0,0,0.5); overflow-x: auto; gap: 12px;
   }
   #bottom-panel.active { bottom: 0; }
 
-  /* 感應區域：讓使用者知道哪裡可以點 */
+  /* 感應區域 */
   .sensor {
-    position: fixed; left: 0; width: 100%; height: 40px; 
+    position: fixed; left: 0; width: 100%; height: 45px; 
     z-index: 90; display: flex; align-items: center; justify-content: center;
-    color: rgba(255,255,255,0.3); font-size: 12px; cursor: pointer;
+    color: rgba(255,255,255,0.2); font-size: 11px; cursor: pointer; letter-spacing: 2px;
   }
-  .sensor-top { top: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent); }
-  .sensor-bottom { bottom: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
+  .sensor-top { top: 0; }
+  .sensor-bottom { bottom: 0; }
 
-  /* 畫布容器 */
+  /* 畫布主容器：確保全螢幕且置中 */
   #canvas-wrapper { 
-    width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center;
-    background: var(--bg-dark); overflow: hidden;
+    width: 100vw; height: 100vh; 
+    display: flex; justify-content: center; align-items: center;
+    background: var(--bg-dark); cursor: grab;
   }
-  #canvas-container { touch-action: none; transition: transform 0.25s ease-out; }
-  canvas { background: #fdfdfd; box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 2px; }
+  #canvas-wrapper:active { cursor: grabbing; }
 
-  /* 側邊縮放鈕：常駐 */
+  /* 舞台容器：控制縮放與橫移 */
+  #stage { touch-action: none; will-change: transform; }
+  
+  canvas { 
+    background: #fdfdfd; 
+    box-shadow: 0 0 60px rgba(0,0,0,0.9); 
+    border-radius: 4px; 
+  }
+
+  /* 側邊縮放鈕 */
   .zoom-btns { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; z-index: 80; }
-  .z-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: white; font-size: 24px; cursor: pointer; backdrop-filter: blur(5px); }
+  .z-btn { width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,0.15); color: white; font-size: 20px; cursor: pointer; backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; }
 
   /* 元件樣式 */
-  .form-card { flex: 0 0 100px; height: 70px; background: #eee; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; cursor: pointer; }
+  .form-card { flex: 0 0 100px; height: 80px; background: #f0f0f0; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; color: #333; }
   .form-card.active { background: var(--success); color: white; font-weight: bold; }
-  .btn-action { padding: 10px 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: white; }
-  .btn-del { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; background: var(--danger); border-radius: 50%; border: none; color: white; }
+  .btn-del { position: absolute; top: -5px; right: -5px; width: 24px; height: 24px; background: var(--danger); border-radius: 50%; border: none; color: white; }
 </style>
 </head>
 <body>
 
-<div class="sensor sensor-top" onclick="togglePanel('top')">▼ 工具箱與設定 ▼</div>
+<div class="sensor sensor-top" onclick="togglePanel('top')">MENU</div>
 
 <div id="top-panel">
   <div style="display:flex; gap:10px;">
-    <div style="text-align:center"><label style="font-size:10px">總人數</label><br><input type="number" id="totalCount" value="36" style="width:50px"></div>
-    <div style="text-align:center"><label style="font-size:10px">女生</label><br><input type="number" id="femaleCount" value="18" style="width:50px"></div>
+    <div style="text-align:center"><label style="font-size:10px">人數</label><br><input type="number" id="totalCount" value="36" style="width:45px; padding:5px;"></div>
+    <div style="text-align:center"><label style="font-size:10px">女生</label><br><input type="number" id="femaleCount" value="18" style="width:45px; padding:5px;"></div>
   </div>
-  <button class="btn-action" style="background:var(--success)" onclick="applyNewCounts()">重設隊形</button>
-  <button class="btn-action" style="background:var(--primary)" onclick="downloadImg()">儲存圖片</button>
-  <button class="btn-action" style="background:#666" onclick="closePanels()">✕ 關閉</button>
+  <button style="background:var(--success); color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="applyNewCounts()">重設</button>
+  <button style="background:var(--primary); color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="downloadImg()">存圖</button>
+  <button style="background:#444; color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="closePanels()">✕</button>
 </div>
 
-<div id="canvas-wrapper" onclick="closePanels()">
-  <div id="canvas-container">
+<div id="canvas-wrapper">
+  <div id="stage">
     <canvas id="field" width="1000" height="600"></canvas>
   </div>
 </div>
 
 <div class="zoom-btns">
-  <button class="z-btn" onclick="changeZoom(0.15); event.stopPropagation();">＋</button>
-  <button class="z-btn" onclick="changeZoom(-0.15); event.stopPropagation();">－</button>
-  <button class="z-btn" onclick="resetZoom(); event.stopPropagation();" style="font-size:12px">重置</button>
+  <button class="z-btn" onclick="changeZoom(0.1); event.stopPropagation();">＋</button>
+  <button class="z-btn" onclick="changeZoom(-0.1); event.stopPropagation();">－</button>
+  <button class="z-btn" onclick="resetZoom(); event.stopPropagation();">◎</button>
 </div>
 
-<div class="sensor sensor-bottom" onclick="togglePanel('bottom')">▲ 切換隊形清單 ▲</div>
+<div class="sensor sensor-bottom" onclick="togglePanel('bottom')">FORMATIONS</div>
 
 <div id="bottom-panel">
-  <button style="flex:0 0 50px; height:50px; border-radius:50%; border:none; background:var(--success); color:white; font-size:30px;" onclick="newFormation()">+</button>
+  <button style="flex:0 0 55px; height:55px; border-radius:50%; border:none; background:var(--success); color:white; font-size:32px;" onclick="newFormation()">+</button>
   <div id="list" style="display: flex; gap: 12px; align-items: center;"></div>
 </div>
 
 <script>
 const canvas = document.getElementById("field");
 const ctx = canvas.getContext("2d");
-const container = document.getElementById("canvas-container");
+const stage = document.getElementById("stage");
 const wrapper = document.getElementById("canvas-wrapper");
 const GRID = 25, R = 15;
 
 let people = [], formations = [], currentIdx = -1, selected = [];
 let dragging = null, scale = 1.0;
+// 橫移座標
+let offsetX = 0, offsetY = 0;
+let isPanning = false, startPanX = 0, startPanY = 0;
 
-// --- 選單切換邏輯 ---
+// --- 面板切換 ---
 function togglePanel(type) {
+    const tp = document.getElementById('top-panel');
+    const bp = document.getElementById('bottom-panel');
     if(type === 'top') {
-        document.getElementById('top-panel').classList.toggle('active');
-        document.getElementById('bottom-panel').classList.remove('active');
+        tp.classList.toggle('active'); bp.classList.remove('active');
     } else {
-        document.getElementById('bottom-panel').classList.toggle('active');
-        document.getElementById('top-panel').classList.remove('active');
+        bp.classList.toggle('active'); tp.classList.remove('active');
     }
 }
-
 function closePanels() {
     document.getElementById('top-panel').classList.remove('active');
     document.getElementById('bottom-panel').classList.remove('active');
 }
 
-// --- 縮放與繪圖 ---
+// --- 縮放與置中優化 ---
 function resetZoom() {
-  const w = window.innerWidth, h = window.innerHeight;
-  scale = Math.min((w * 0.85) / 1000, (h * 0.7) / 600);
-  applyScale();
+    offsetX = 0; offsetY = 0;
+    const w = window.innerWidth, h = window.innerHeight;
+    // 為 iPhone 橫屏預留更多邊距 (置中優化)
+    scale = Math.min((w * 0.8) / 1000, (h * 0.75) / 600);
+    updateStageTransform();
 }
-function changeZoom(delta) { scale = Math.min(Math.max(0.1, scale + delta), 3.0); applyScale(); }
-function applyScale() { container.style.transform = `scale(${scale})`; }
+function changeZoom(delta) { 
+    scale = Math.min(Math.max(0.1, scale + delta), 4.0); 
+    updateStageTransform(); 
+}
+function updateStageTransform() {
+    stage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
 
+// --- 座標轉換 ---
 function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: (clientX - rect.left) * (1000 / rect.width), y: (clientY - rect.top) * (600 / rect.height) };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    // 考慮當前縮放與位移後的畫布座標
+    return {
+        x: (clientX - rect.left) * (1000 / rect.width),
+        y: (clientY - rect.top) * (600 / rect.height)
+    };
 }
 
+// --- 繪圖邏輯 ---
 function drawBackground(){
-  ctx.fillStyle="#f8f9f8"; ctx.fillRect(0,0,1000,600);
-  ctx.strokeStyle="#e0e0e0"; ctx.lineWidth = 1;
-  for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
-  for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
-  ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255, 0, 0, 0.4)"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(500, 0); ctx.lineTo(500, 600); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#2c3e50"; ctx.fillRect(380, 540, 240, 40);
-  ctx.fillStyle = "#fff"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("裁 判 台 (正面)", 500, 565);
+    ctx.fillStyle="#fcfcfc"; ctx.fillRect(0,0,1000,600);
+    ctx.strokeStyle="#eeeeee"; ctx.lineWidth = 1;
+    for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
+    for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
+    ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255, 0, 0, 0.3)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(500, 0); ctx.lineTo(500, 600); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#2c3e50"; ctx.fillRect(380, 550, 240, 30);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("裁 判 台 正 面", 500, 570);
 }
 
 function draw() {
-  ctx.clearRect(0,0,1000,600);
-  drawBackground();
-  people.forEach(p=>{
-    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
-    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
-    if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth = 3; ctx.stroke(); }
-  });
+    ctx.clearRect(0,0,1000,600);
+    drawBackground();
+    people.forEach(p=>{
+        ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
+        ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
+        if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth = 3; ctx.stroke(); }
+    });
 }
 
-function handleStart(e) {
-  const {x, y} = getPos(e);
-  let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
-  if(hit){ selected = [hit]; dragging = hit; if(e.cancelable) e.preventDefault(); } 
-  else { selected = []; }
-  draw();
-}
-function handleMove(e) {
-  if(!dragging) return;
-  if(e.cancelable) e.preventDefault();
-  const {x, y} = getPos(e);
-  const dx = Math.round(x/GRID)*GRID - dragging.x, dy = Math.round(y/GRID)*GRID - dragging.y;
-  if(dx !== 0 || dy !== 0){
-    selected.forEach(p => { p.x += dx; p.y += dy; });
-    if(formations[currentIdx]) formations[currentIdx].data = JSON.parse(JSON.stringify(people));
+// --- 觸控/滑鼠處理 (點擊人物 vs 背景橫移) ---
+wrapper.addEventListener('touchstart', (e) => {
+    const {x, y} = getPos(e);
+    let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
+    
+    if(hit){
+        // 點到人物：開始移動人物
+        isPanning = false;
+        selected = [hit]; dragging = hit; 
+        if(e.cancelable) e.preventDefault();
+    } else {
+        // 點到背景：開始橫移畫布
+        isPanning = true;
+        dragging = null;
+        selected = [];
+        startPanX = (e.touches ? e.touches[0].clientX : e.clientX) - offsetX;
+        startPanY = (e.touches ? e.touches[0].clientY : e.clientY) - offsetY;
+        closePanels();
+    }
     draw();
-  }
-}
-function handleEnd() { dragging = null; }
+}, {passive: false});
 
-canvas.addEventListener('touchstart', handleStart, {passive: false});
-canvas.addEventListener('touchmove', handleMove, {passive: false});
-canvas.addEventListener('touchend', handleEnd);
-canvas.addEventListener('mousedown', handleStart);
-window.addEventListener('mousemove', handleMove);
-window.addEventListener('mouseup', handleEnd);
+wrapper.addEventListener('touchmove', (e) => {
+    if(dragging) {
+        // 移動人物邏輯
+        const {x, y} = getPos(e);
+        const dx = Math.round(x/GRID)*GRID - dragging.x;
+        const dy = Math.round(y/GRID)*GRID - dragging.y;
+        if(dx !== 0 || dy !== 0){
+            selected.forEach(p => { p.x += dx; p.y += dy; });
+            if(formations[currentIdx]) formations[currentIdx].data = JSON.parse(JSON.stringify(people));
+            draw();
+        }
+    } else if(isPanning) {
+        // 橫移畫布邏輯
+        offsetX = (e.touches ? e.touches[0].clientX : e.clientX) - startPanX;
+        offsetY = (e.touches ? e.touches[0].clientY : e.clientY) - startPanY;
+        updateStageTransform();
+    }
+    if(e.cancelable) e.preventDefault();
+}, {passive: false});
 
-function applyNewCounts() { if(confirm("確定重設？")) { formations = []; initPeople(); newFormation(); resetZoom(); } }
+wrapper.addEventListener('touchend', () => { dragging = null; isPanning = false; });
+
+// 滑鼠支援 (PC)
+wrapper.addEventListener('mousedown', (e) => {
+    const {x, y} = getPos(e);
+    let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R + 10));
+    if(hit){ selected = [hit]; dragging = hit; } 
+    else { isPanning = true; startPanX = e.clientX - offsetX; startPanY = e.clientY - offsetY; selected = []; closePanels(); }
+    draw();
+});
+window.addEventListener('mousemove', (e) => {
+    if(dragging) {
+        const {x, y} = getPos(e);
+        const dx = Math.round(x/GRID)*GRID - dragging.x;
+        const dy = Math.round(y/GRID)*GRID - dragging.y;
+        if(dx !== 0 || dy !== 0){
+            selected.forEach(p => { p.x += dx; p.y += dy; });
+            draw();
+        }
+    } else if(isPanning) {
+        offsetX = e.clientX - startPanX; offsetY = e.clientY - startPanY;
+        updateStageTransform();
+    }
+});
+window.addEventListener('mouseup', () => { dragging = null; isPanning = false; });
+
+// --- 隊形邏輯 ---
+function applyNewCounts() { if(confirm("確定重設？")) { formations = []; initPeople(); newFormation(); resetZoom(); closePanels(); } }
 function initPeople() {
-  const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
-  people = [];
-  for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
+    const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
+    people = [];
+    for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
 }
 function switchFormation(idx) { currentIdx = idx; people = JSON.parse(JSON.stringify(formations[idx].data)); updateList(); draw(); }
 function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); } }
 function newFormation() { formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); currentIdx = formations.length - 1; updateList(); }
 function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); }
-
 function updateList(){
-  const list = document.getElementById("list"); list.innerHTML = "";
-  formations.forEach((f, idx) => {
-    const card = document.createElement("div"); card.className = `form-card ${idx===currentIdx?'active':''}`;
-    card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del" onclick="deleteFormation(event, ${idx})">×</button>`;
-    card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') switchFormation(idx); };
-    list.appendChild(card);
-  });
+    const list = document.getElementById("list"); list.innerHTML = "";
+    formations.forEach((f, idx) => {
+        const card = document.createElement("div"); card.className = `form-card ${idx===currentIdx?'active':''}`;
+        card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del" onclick="deleteFormation(event, ${idx})">×</button>`;
+        card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') switchFormation(idx); };
+        list.appendChild(card);
+    });
 }
 function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
 
-window.onload = () => { initPeople(); newFormation(); draw(); setTimeout(resetZoom, 100); };
+window.onload = () => { initPeople(); newFormation(); draw(); setTimeout(resetZoom, 200); };
 window.addEventListener('resize', resetZoom);
 </script>
 </body>
