@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>隊形模擬器 - iPhone 專業版</title>
+<title>隊形模擬器 Pro - 記憶動畫版</title>
 <style>
   :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #121212; }
   
@@ -13,43 +13,33 @@
     overflow: hidden; touch-action: none;
   }
 
-  /* 面板與安全區域 */
+  /* 面板樣式 */
   #top-panel, #bottom-panel {
     position: fixed; left: 0; width: 100%; background: white; z-index: 100; 
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 0 calc(45px + env(safe-area-inset-right)) 0 calc(45px + env(safe-area-inset-left));
-    box-sizing: border-box; display: flex; align-items: center; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    box-sizing: border-box; display: flex; align-items: center; box-shadow: 0 0 20px rgba(0,0,0,0.6);
   }
   #top-panel { top: -140px; height: 110px; justify-content: space-around; }
-  #bottom-panel { bottom: -160px; height: 130px; overflow-x: auto; gap: 15px; }
+  #bottom-panel { bottom: -170px; height: 140px; overflow-x: auto; gap: 15px; }
   #top-panel.active { top: 0; }
   #bottom-panel.active { bottom: 0; }
 
-  .sensor {
-    position: fixed; left: 0; width: 100%; height: 60px; 
-    z-index: 95; display: flex; align-items: center; justify-content: center;
-    color: rgba(255,255,255,0.1); font-size: 10px;
-  }
+  .sensor { position: fixed; left: 0; width: 100%; height: 65px; z-index: 95; }
   .sensor-top { top: 0; }
   .sensor-bottom { bottom: 0; }
 
   /* 核心容器 */
   #canvas-wrapper { 
     width: 100vw; height: 100vh; background: var(--bg-dark); 
-    display: flex; justify-content: center; align-items: center;
-    overflow: hidden; position: relative;
+    display: flex; justify-content: center; align-items: center; overflow: hidden;
   }
-  #stage { 
-    pointer-events: none; /* 重要：讓事件穿透到父層處理 */
-    will-change: transform; 
-  }
-  canvas { 
-    background: #ffffff; box-shadow: 0 0 50px rgba(0,0,0,0.8); 
-    border-radius: 4px; display: block;
-  }
+  #stage { pointer-events: none; will-change: transform; }
+  canvas { background: #ffffff; box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 4px; display: block; }
 
+  /* 控制按鈕 */
   .zoom-btns { 
-    position: fixed; right: calc(20px + env(safe-area-inset-right)); 
+    position: fixed; right: calc(15px + env(safe-area-inset-right)); 
     top: 50%; transform: translateY(-50%); 
     display: flex; flex-direction: column; gap: 15px; z-index: 110; 
   }
@@ -57,11 +47,14 @@
     width: 55px; height: 55px; border-radius: 50%; border: none; 
     background: rgba(255,255,255,0.25); color: white; font-size: 24px; 
     backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   }
 
-  .form-card { flex: 0 0 110px; height: 80px; background: #eee; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; flex-shrink: 0; }
-  .form-card.active { background: var(--success); color: white; }
-  .btn-del { position: absolute; top: -5px; right: -5px; width: 24px; height: 24px; background: var(--danger); border-radius: 50%; border: none; color: white; }
+  .form-card { flex: 0 0 110px; height: 90px; background: #eee; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; flex-shrink: 0; transition: transform 0.2s; }
+  .form-card.active { background: var(--success); color: white; transform: scale(1.05); }
+  .btn-del { position: absolute; top: -5px; right: -5px; width: 26px; height: 26px; background: var(--danger); border-radius: 50%; border: none; color: white; }
+  
+  .btn-main { background: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -70,15 +63,15 @@
 
 <div id="top-panel">
   <div style="display:flex; gap:10px;">
-    <div style="text-align:center"><label style="font-size:10px">總數</label><br><input type="number" id="totalCount" value="36" style="width:40px;"></div>
-    <div style="text-align:center"><label style="font-size:10px">女</label><br><input type="number" id="femaleCount" value="18" style="width:40px;"></div>
+    <div style="text-align:center"><label style="font-size:10px">總數</label><br><input type="number" id="totalCount" value="36" style="width:40px; padding:5px;"></div>
+    <div style="text-align:center"><label style="font-size:10px">女</label><br><input type="number" id="femaleCount" value="18" style="width:40px; padding:5px;"></div>
   </div>
-  <button style="background:var(--success); color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="applyNewCounts()">重設</button>
-  <button style="background:var(--primary); color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="downloadImg()">儲存</button>
-  <button style="background:#444; color:white; border:none; padding:10px 15px; border-radius:8px;" onclick="closePanels()">✕</button>
+  <button class="btn-main" style="background:var(--success)" onclick="applyNewCounts()">重設全部</button>
+  <button class="btn-main" onclick="downloadImg()">儲存圖片</button>
+  <button class="btn-main" style="background:#444" onclick="closePanels()">✕</button>
 </div>
 
-<div id="canvas-wrapper" id="main-ui">
+<div id="canvas-wrapper">
   <div id="stage">
     <canvas id="field" width="1000" height="600"></canvas>
   </div>
@@ -93,7 +86,7 @@
 <div class="sensor sensor-bottom" onclick="togglePanel('bottom')"></div>
 
 <div id="bottom-panel">
-  <button style="flex:0 0 60px; height:60px; border-radius:50%; border:none; background:var(--success); color:white; font-size:36px;" onclick="newFormation()">+</button>
+  <button style="flex:0 0 65px; height:65px; border-radius:50%; border:none; background:var(--success); color:white; font-size:40px;" onclick="newFormation()">+</button>
   <div id="list" style="display: flex; gap: 15px; align-items: center;"></div>
 </div>
 
@@ -108,118 +101,187 @@ let people = [], formations = [], currentIdx = -1, selected = [];
 let dragging = null, scale = 1.0, offsetX = 0, offsetY = 0;
 let isPanning = false, startPanX = 0, startPanY = 0;
 
+// 動畫相關
+let aniStartTime = 0;
+let aniDuration = 400; // 0.4秒動畫
+let startPositions = []; 
+
+// --- 儲存機制 ---
+function saveData() {
+    const data = {
+        formations: formations,
+        currentIdx: currentIdx,
+        config: {
+            total: document.getElementById('totalCount').value,
+            female: document.getElementById('femaleCount').value
+        }
+    };
+    localStorage.setItem('formationData', JSON.stringify(data));
+}
+
+function loadData() {
+    const saved = localStorage.getItem('formationData');
+    if (saved) {
+        const data = JSON.parse(saved);
+        formations = data.formations;
+        currentIdx = data.currentIdx;
+        document.getElementById('totalCount').value = data.config.total;
+        document.getElementById('femaleCount').value = data.config.female;
+        people = JSON.parse(JSON.stringify(formations[currentIdx].data));
+        return true;
+    }
+    return false;
+}
+
+// --- 切換隊形與動畫 ---
+function switchFormation(idx) {
+    if (idx === currentIdx) return;
+    
+    // 紀錄起始位置
+    startPositions = JSON.parse(JSON.stringify(people));
+    currentIdx = idx;
+    aniStartTime = performance.now();
+    
+    animate();
+    updateList();
+    saveData();
+}
+
+function animate(time) {
+    const now = performance.now();
+    const elapsed = now - aniStartTime;
+    const progress = Math.min(elapsed / aniDuration, 1);
+    
+    // EaseOut 自定義公式 (讓移動更平滑)
+    const ease = 1 - Math.pow(1 - progress, 3);
+
+    const targetData = formations[currentIdx].data;
+    
+    people = startPositions.map((p, i) => {
+        const target = targetData[i];
+        return {
+            ...p,
+            x: p.x + (target.x - p.x) * ease,
+            y: p.y + (target.y - p.y) * ease
+        };
+    });
+
+    draw();
+
+    if (progress < 1) {
+        requestAnimationFrame(animate);
+    } else {
+        people = JSON.parse(JSON.stringify(targetData)); // 確保精準到達
+        draw();
+    }
+}
+
+// --- 基礎繪圖與操作 ---
 function togglePanel(type) {
-  const tp = document.getElementById('top-panel'), bp = document.getElementById('bottom-panel');
-  if(type === 'top') { tp.classList.toggle('active'); bp.classList.remove('active'); } 
-  else { bp.classList.toggle('active'); tp.classList.remove('active'); }
+    const tp = document.getElementById('top-panel'), bp = document.getElementById('bottom-panel');
+    if(type === 'top') { tp.classList.toggle('active'); bp.classList.remove('active'); } 
+    else { bp.classList.toggle('active'); tp.classList.remove('active'); }
 }
 function closePanels() {
-  document.getElementById('top-panel').classList.remove('active');
-  document.getElementById('bottom-panel').classList.remove('active');
+    document.getElementById('top-panel').classList.remove('active');
+    document.getElementById('bottom-panel').classList.remove('active');
 }
 
 function resetZoom() {
-  offsetX = 0; offsetY = 0;
-  const w = window.innerWidth, h = window.innerHeight;
-  scale = Math.min((w * 0.8) / 1000, (h * 0.75) / 600);
-  updateStageTransform();
+    offsetX = 0; offsetY = 0;
+    const w = window.innerWidth, h = window.innerHeight;
+    scale = Math.min((w * 0.8) / 1000, (h * 0.75) / 600);
+    updateStageTransform();
 }
 function changeZoom(delta) { scale = Math.min(Math.max(0.05, scale + delta), 4.0); updateStageTransform(); }
 function updateStageTransform() { stage.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`; }
 
 function getLogicPos(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  return { 
-    x: (clientX - rect.left) * (1000 / rect.width), 
-    y: (clientY - rect.top) * (600 / rect.height) 
-  };
+    const rect = canvas.getBoundingClientRect();
+    return { x: (clientX - rect.left) * (1000 / rect.width), y: (clientY - rect.top) * (600 / rect.height) };
 }
 
 function draw() {
-  ctx.clearRect(0,0,1000,600);
-  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,1000,600);
-  ctx.strokeStyle="#eee"; ctx.lineWidth = 1;
-  for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
-  for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
-  ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255,0,0,0.3)"; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(500,0); ctx.lineTo(500,600); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle="#2c3e50"; ctx.fillRect(380,550,240,30);
-  ctx.fillStyle="#fff"; ctx.font="bold 14px sans-serif"; ctx.textAlign="center";
-  ctx.fillText("裁 判 台 正 面", 500, 570);
-  
-  people.forEach(p=>{
-    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
-    ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
-    if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth=3; ctx.stroke(); }
-  });
+    ctx.clearRect(0,0,1000,600);
+    ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,1000,600);
+    ctx.strokeStyle="#eee"; ctx.lineWidth = 1;
+    for(let x=0; x<=1000; x+=GRID){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,600); ctx.stroke(); }
+    for(let y=0; y<=600; y+=GRID){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1000,y); ctx.stroke(); }
+    ctx.setLineDash([8, 4]); ctx.strokeStyle = "rgba(255,0,0,0.3)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(500,0); ctx.lineTo(500,600); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#2c3e50"; ctx.fillRect(380,550,240,30);
+    ctx.fillStyle="#fff"; ctx.font="bold 14px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("裁 判 台 正 面", 500, 570);
+    
+    people.forEach(p=>{
+        ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
+        ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
+        if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth=3; ctx.stroke(); }
+    });
 }
 
-// --- 核心改動：由 wrapper 統一監聽 ---
 function handleDown(e) {
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  const {x, y} = getLogicPos(clientX, clientY);
-
-  // 檢查是否點到舞者 (範圍判定)
-  let hit = null;
-  // 只有當點擊位置確實在畫布範圍內時才判斷舞者
-  if(x >= 0 && x <= 1000 && y >= 0 && y <= 600) {
-    hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R * 1.5));
-  }
-
-  if (hit) {
-    isPanning = false; dragging = hit; selected = [hit];
-  } else {
-    isPanning = true; dragging = null; selected = [];
-    startPanX = clientX - offsetX;
-    startPanY = clientY - offsetY;
-    closePanels();
-  }
-  draw();
-  if(e.cancelable) e.preventDefault();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const {x, y} = getLogicPos(clientX, clientY);
+    let hit = null;
+    if(x >= 0 && x <= 1000 && y >= 0 && y <= 600) {
+        hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R * 1.5));
+    }
+    if (hit) { isPanning = false; dragging = hit; selected = [hit]; } 
+    else { isPanning = true; dragging = null; selected = []; startPanX = clientX - offsetX; startPanY = clientY - offsetY; closePanels(); }
+    draw();
+    if(e.cancelable) e.preventDefault();
 }
 
 function handleMove(e) {
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-  if (dragging) {
-    const {x, y} = getLogicPos(clientX, clientY);
-    const dx = Math.round(x/GRID)*GRID - dragging.x;
-    const dy = Math.round(y/GRID)*GRID - dragging.y;
-    if(dx !== 0 || dy !== 0) {
-      selected.forEach(p => { p.x += dx; p.y += dy; });
-      if(formations[currentIdx]) formations[currentIdx].data = JSON.parse(JSON.stringify(people));
-      draw();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    if (dragging) {
+        const {x, y} = getLogicPos(clientX, clientY);
+        const dx = Math.round(x/GRID)*GRID - dragging.x;
+        const dy = Math.round(y/GRID)*GRID - dragging.y;
+        if(dx !== 0 || dy !== 0) {
+            selected.forEach(p => { p.x += dx; p.y += dy; });
+            formations[currentIdx].data = JSON.parse(JSON.stringify(people));
+            draw();
+            saveData();
+        }
+    } else if (isPanning) {
+        offsetX = clientX - startPanX; offsetY = clientY - startPanY;
+        updateStageTransform();
     }
-  } else if (isPanning) {
-    offsetX = clientX - startPanX;
-    offsetY = clientY - startPanY;
-    updateStageTransform();
-  }
-  if(e.cancelable) e.preventDefault();
+    if(e.cancelable) e.preventDefault();
 }
 
-function handleEnd() { dragging = null; isPanning = false; }
-
-// 事件監聽全移到大容器上
 wrapper.addEventListener('touchstart', handleDown, {passive: false});
 wrapper.addEventListener('touchmove', handleMove, {passive: false});
-wrapper.addEventListener('touchend', handleEnd);
+wrapper.addEventListener('touchend', () => { dragging = null; isPanning = false; });
 wrapper.addEventListener('mousedown', handleDown);
 window.addEventListener('mousemove', handleMove);
-window.addEventListener('mouseup', handleEnd);
+window.addEventListener('mouseup', () => { dragging = null; isPanning = false; });
 
-function applyNewCounts() { if(confirm("確定重設？")) { formations=[]; initPeople(); newFormation(); resetZoom(); closePanels(); } }
+// --- 隊形邏輯 ---
+function applyNewCounts() { 
+    if(confirm("重設會清除所有已儲存的隊形，確定嗎？")) { 
+        localStorage.removeItem('formationData');
+        formations=[]; initPeople(); newFormation(); resetZoom(); closePanels(); 
+    } 
+}
 function initPeople() {
     const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
     people = [];
     for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
 }
-function switchFormation(idx) { currentIdx = idx; people = JSON.parse(JSON.stringify(formations[idx].data)); updateList(); draw(); }
-function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); } }
-function newFormation() { formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); currentIdx = formations.length - 1; updateList(); }
-function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); }
+function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); saveData(); } }
+function newFormation() { 
+    formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); 
+    currentIdx = formations.length - 1; 
+    updateList(); 
+    saveData();
+}
+function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); saveData(); }
+
 function updateList(){
     const list = document.getElementById("list"); list.innerHTML = "";
     formations.forEach((f, idx) => {
@@ -231,7 +293,12 @@ function updateList(){
 }
 function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
 
-window.onload = () => { initPeople(); newFormation(); draw(); setTimeout(resetZoom, 300); };
+window.onload = () => { 
+    if (!loadData()) { initPeople(); newFormation(); }
+    updateList();
+    draw(); 
+    setTimeout(resetZoom, 300); 
+};
 window.addEventListener('resize', resetZoom);
 </script>
 </body>
