@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>隊形模擬器 Pro - 記憶動畫版</title>
+<title>隊形模擬器 Pro - 標楷體標籤版</title>
 <style>
   :root { --primary: #2196f3; --success: #4caf50; --danger: #ff5252; --dark: #2c3e50; --bg-dark: #121212; }
   
@@ -37,7 +37,6 @@
   #stage { pointer-events: none; will-change: transform; }
   canvas { background: #ffffff; box-shadow: 0 0 50px rgba(0,0,0,0.8); border-radius: 4px; display: block; }
 
-  /* 控制按鈕 */
   .zoom-btns { 
     position: fixed; right: calc(15px + env(safe-area-inset-right)); 
     top: 50%; transform: translateY(-50%); 
@@ -47,14 +46,11 @@
     width: 55px; height: 55px; border-radius: 50%; border: none; 
     background: rgba(255,255,255,0.25); color: white; font-size: 24px; 
     backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   }
 
   .form-card { flex: 0 0 110px; height: 90px; background: #eee; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 13px; flex-shrink: 0; transition: transform 0.2s; }
   .form-card.active { background: var(--success); color: white; transform: scale(1.05); }
   .btn-del { position: absolute; top: -5px; right: -5px; width: 26px; height: 26px; background: var(--danger); border-radius: 50%; border: none; color: white; }
-  
-  .btn-main { background: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 10px; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -63,12 +59,12 @@
 
 <div id="top-panel">
   <div style="display:flex; gap:10px;">
-    <div style="text-align:center"><label style="font-size:10px">總數</label><br><input type="number" id="totalCount" value="36" style="width:40px; padding:5px;"></div>
-    <div style="text-align:center"><label style="font-size:10px">女</label><br><input type="number" id="femaleCount" value="18" style="width:40px; padding:5px;"></div>
+    <div style="text-align:center"><label style="font-size:10px">總數</label><br><input type="number" id="totalCount" value="36" style="width:40px;"></div>
+    <div style="text-align:center"><label style="font-size:10px">女</label><br><input type="number" id="femaleCount" value="18" style="width:40px;"></div>
   </div>
-  <button class="btn-main" style="background:var(--success)" onclick="applyNewCounts()">重設全部</button>
-  <button class="btn-main" onclick="downloadImg()">儲存圖片</button>
-  <button class="btn-main" style="background:#444" onclick="closePanels()">✕</button>
+  <button style="background:var(--success); color:white; border:none; padding:12px 18px; border-radius:10px;" onclick="applyNewCounts()">重設全部</button>
+  <button style="background:var(--primary); color:white; border:none; padding:12px 18px; border-radius:10px;" onclick="downloadImg()">儲存圖片</button>
+  <button style="background:#444; color:white; border:none; padding:10px; border-radius:10px;" onclick="closePanels()">✕</button>
 </div>
 
 <div id="canvas-wrapper">
@@ -100,22 +96,13 @@ const GRID = 25, R = 15;
 let people = [], formations = [], currentIdx = -1, selected = [];
 let dragging = null, scale = 1.0, offsetX = 0, offsetY = 0;
 let isPanning = false, startPanX = 0, startPanY = 0;
+let lastTap = 0; // 用於偵測雙擊
 
-// 動畫相關
-let aniStartTime = 0;
-let aniDuration = 400; // 0.4秒動畫
-let startPositions = []; 
+// 動畫
+let aniStartTime = 0, aniDuration = 400, startPositions = []; 
 
-// --- 儲存機制 ---
 function saveData() {
-    const data = {
-        formations: formations,
-        currentIdx: currentIdx,
-        config: {
-            total: document.getElementById('totalCount').value,
-            female: document.getElementById('femaleCount').value
-        }
-    };
+    const data = { formations, currentIdx, config: { total: document.getElementById('totalCount').value, female: document.getElementById('femaleCount').value } };
     localStorage.setItem('formationData', JSON.stringify(data));
 }
 
@@ -133,58 +120,28 @@ function loadData() {
     return false;
 }
 
-// --- 切換隊形與動畫 ---
 function switchFormation(idx) {
     if (idx === currentIdx) return;
-    
-    // 紀錄起始位置
     startPositions = JSON.parse(JSON.stringify(people));
     currentIdx = idx;
     aniStartTime = performance.now();
-    
     animate();
     updateList();
     saveData();
 }
 
-function animate(time) {
-    const now = performance.now();
-    const elapsed = now - aniStartTime;
-    const progress = Math.min(elapsed / aniDuration, 1);
-    
-    // EaseOut 自定義公式 (讓移動更平滑)
+function animate() {
+    const now = performance.now(), elapsed = now - aniStartTime, progress = Math.min(elapsed / aniDuration, 1);
     const ease = 1 - Math.pow(1 - progress, 3);
-
     const targetData = formations[currentIdx].data;
-    
-    people = startPositions.map((p, i) => {
-        const target = targetData[i];
-        return {
-            ...p,
-            x: p.x + (target.x - p.x) * ease,
-            y: p.y + (target.y - p.y) * ease
-        };
-    });
-
+    people = startPositions.map((p, i) => ({
+        ...p,
+        x: p.x + (targetData[i].x - p.x) * ease,
+        y: p.y + (targetData[i].y - p.y) * ease
+    }));
     draw();
-
-    if (progress < 1) {
-        requestAnimationFrame(animate);
-    } else {
-        people = JSON.parse(JSON.stringify(targetData)); // 確保精準到達
-        draw();
-    }
-}
-
-// --- 基礎繪圖與操作 ---
-function togglePanel(type) {
-    const tp = document.getElementById('top-panel'), bp = document.getElementById('bottom-panel');
-    if(type === 'top') { tp.classList.toggle('active'); bp.classList.remove('active'); } 
-    else { bp.classList.toggle('active'); tp.classList.remove('active'); }
-}
-function closePanels() {
-    document.getElementById('top-panel').classList.remove('active');
-    document.getElementById('bottom-panel').classList.remove('active');
+    if (progress < 1) requestAnimationFrame(animate);
+    else { people = JSON.parse(JSON.stringify(targetData)); draw(); }
 }
 
 function resetZoom() {
@@ -217,17 +174,41 @@ function draw() {
         ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI*2);
         ctx.fillStyle = p.gender==="male" ? "#2b6cff" : "#e63946"; ctx.fill();
         if(selected.includes(p)){ ctx.strokeStyle="#000"; ctx.lineWidth=3; ctx.stroke(); }
+        
+        // 繪製標楷體文字
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px 'DFKai-SB', 'BiauKai', '標楷體', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.name || (p.id + 1), p.x, p.y + 1); // 預設顯示編號
     });
 }
 
 function handleDown(e) {
+    const now = Date.now();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const {x, y} = getLogicPos(clientX, clientY);
-    let hit = null;
-    if(x >= 0 && x <= 1000 && y >= 0 && y <= 600) {
-        hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R * 1.5));
+
+    let hit = people.find(p => Math.hypot(p.x-x, p.y-y) < (R * 1.5));
+
+    // 雙擊偵測：修改名字
+    if (hit && (now - lastTap < 300)) {
+        const newName = prompt("輸入標籤文字 (一個字)：", hit.name || "");
+        if (newName !== null) {
+            hit.name = newName.substring(0, 1);
+            // 同步修改所有隊形中該 ID 的名字
+            formations.forEach(f => {
+                const person = f.data.find(dp => dp.id === hit.id);
+                if (person) person.name = hit.name;
+            });
+            saveData();
+            draw();
+        }
+        return;
     }
+    lastTap = now;
+
     if (hit) { isPanning = false; dragging = hit; selected = [hit]; } 
     else { isPanning = true; dragging = null; selected = []; startPanX = clientX - offsetX; startPanY = clientY - offsetY; closePanels(); }
     draw();
@@ -239,13 +220,11 @@ function handleMove(e) {
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     if (dragging) {
         const {x, y} = getLogicPos(clientX, clientY);
-        const dx = Math.round(x/GRID)*GRID - dragging.x;
-        const dy = Math.round(y/GRID)*GRID - dragging.y;
+        const dx = Math.round(x/GRID)*GRID - dragging.x, dy = Math.round(y/GRID)*GRID - dragging.y;
         if(dx !== 0 || dy !== 0) {
             selected.forEach(p => { p.x += dx; p.y += dy; });
             formations[currentIdx].data = JSON.parse(JSON.stringify(people));
-            draw();
-            saveData();
+            draw(); saveData();
         }
     } else if (isPanning) {
         offsetX = clientX - startPanX; offsetY = clientY - startPanY;
@@ -261,45 +240,37 @@ wrapper.addEventListener('mousedown', handleDown);
 window.addEventListener('mousemove', handleMove);
 window.addEventListener('mouseup', () => { dragging = null; isPanning = false; });
 
-// --- 隊形邏輯 ---
+function togglePanel(type) {
+    const tp = document.getElementById('top-panel'), bp = document.getElementById('bottom-panel');
+    if(type === 'top') { tp.classList.toggle('active'); bp.classList.remove('active'); } 
+    else { bp.classList.toggle('active'); tp.classList.remove('active'); }
+}
+function closePanels() { document.getElementById('top-panel').classList.remove('active'); document.getElementById('bottom-panel').classList.remove('active'); }
+
 function applyNewCounts() { 
-    if(confirm("重設會清除所有已儲存的隊形，確定嗎？")) { 
-        localStorage.removeItem('formationData');
-        formations=[]; initPeople(); newFormation(); resetZoom(); closePanels(); 
-    } 
+    if(confirm("重設會清除所有隊形，確定嗎？")) { localStorage.removeItem('formationData'); formations=[]; initPeople(); newFormation(); resetZoom(); closePanels(); } 
 }
 function initPeople() {
     const total = parseInt(document.getElementById('totalCount').value) || 1, female = parseInt(document.getElementById('femaleCount').value) || 0;
     people = [];
-    for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male" });
+    for(let i=0; i<total; i++) people.push({ id: i, x: 140+(i%8)*100, y: 100+Math.floor(i/8)*80, gender: i<female?"female":"male", name: "" });
 }
-function renameFormation(e, idx) { e.stopPropagation(); const n = prompt("隊形名稱：", formations[idx].name); if (n) { formations[idx].name = n; updateList(); saveData(); } }
 function newFormation() { 
     formations.push({ name: "隊形 " + (formations.length + 1), data: JSON.parse(JSON.stringify(people)) }); 
-    currentIdx = formations.length - 1; 
-    updateList(); 
-    saveData();
+    currentIdx = formations.length - 1; updateList(); saveData();
 }
-function deleteFormation(e, idx) { e.stopPropagation(); if(formations.length<=1) return; formations.splice(idx,1); currentIdx=0; people=JSON.parse(JSON.stringify(formations[0].data)); updateList(); draw(); saveData(); }
-
 function updateList(){
     const list = document.getElementById("list"); list.innerHTML = "";
     formations.forEach((f, idx) => {
         const card = document.createElement("div"); card.className = `form-card ${idx===currentIdx?'active':''}`;
-        card.innerHTML = `<div onclick="renameFormation(event, ${idx})">${f.name} ✏️</div><button class="btn-del" onclick="deleteFormation(event, ${idx})">×</button>`;
-        card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') switchFormation(idx); };
+        card.innerHTML = `<div onclick="event.stopPropagation(); const n=prompt('改名：', formations[${idx}].name); if(n){formations[${idx}].name=n;updateList();saveData();}">${f.name} ✏️</div><button class="btn-del" onclick="event.stopPropagation(); if(formations.length>1){formations.splice(${idx},1);currentIdx=0;people=JSON.parse(JSON.stringify(formations[0].data));updateList();draw();saveData();}">×</button>`;
+        card.onclick = () => switchFormation(idx);
         list.appendChild(card);
     });
 }
 function downloadImg() { selected=[]; draw(); const a=document.createElement('a'); a.download='隊形.png'; a.href=canvas.toDataURL(); a.click(); }
 
-window.onload = () => { 
-    if (!loadData()) { initPeople(); newFormation(); }
-    updateList();
-    draw(); 
-    setTimeout(resetZoom, 300); 
-};
-window.addEventListener('resize', resetZoom);
+window.onload = () => { if (!loadData()) { initPeople(); newFormation(); } updateList(); draw(); setTimeout(resetZoom, 300); };
 </script>
 </body>
 </html>
